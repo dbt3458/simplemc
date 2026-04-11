@@ -85,9 +85,9 @@ public class Chunk {
     public void render() {
         if (!meshBuilt) return;
 
-        meshTop.render(Main.grassTopTexture);
-        meshSide.render(Main.grassSideTexture);
-        meshBottom.render(Main.dirtTexture);
+        meshTop.render(Texture.grassTopTexture);
+        meshSide.render(Texture.grassSideTexture);
+        meshBottom.render(Texture.dirtTexture);
     }
 
     public boolean hasBlock(int x, int y, int z) {

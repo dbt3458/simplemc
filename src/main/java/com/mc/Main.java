@@ -5,6 +5,8 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -20,11 +22,6 @@ public class Main {
     private World world;
     private Shader shader;
     private float velocityY = 0;
-    public static Texture dirtTexture;
-    public static Texture grassTopTexture;
-    public static Texture grassSideTexture;
-    private static final float PLAYER_WIDTH = 0.6f;
-    private static final float PLAYER_HEIGHT = 1.8f;
     private long lastTime = System.nanoTime();
     private float deltaTime;
     public void run() {
@@ -32,7 +29,31 @@ public class Main {
         loop();
         free();
     }
+    public class Settings {
 
+        // 一启动就自动调用这个方法！
+        public static void createSettingsIfNotExist() {
+            try {
+                // 当前目录：./settings.cfg
+                File file = new File("settings.cfg");
+
+                // 如果文件不存在，就自动创建
+                if (!file.exists()) {
+                    file.createNewFile();
+
+                    // 写入内容
+                    FileWriter writer = new FileWriter(file);
+                    writer.write("render_distance=10\n");
+                    writer.write("chunk_cleanup_interval=15\n");
+                    writer.close();
+
+                    System.out.println("✅ 已自动生成配置文件：settings.cfg");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
     public static int loadRenderDistance() {
         try {
             Scanner scanner = new Scanner(new File("settings.cfg"));
@@ -55,7 +76,7 @@ public class Main {
         if (!glfwInit()) {
             throw new IllegalStateException("GLFW 初始化失败");
         }
-
+        Settings.createSettingsIfNotExist();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Mini MC", 0, 0);
         if (window == 0) {
             throw new RuntimeException("窗口创建失败");
@@ -74,14 +95,9 @@ public class Main {
         glClearColor(0.5f, 0.8f, 1.0f, 1);
         glfwSwapInterval(0);
         shader = new Shader();
-
-        dirtTexture = new Texture("dirt.png");
-        grassTopTexture = new Texture("grass_top.png");
-        grassSideTexture = new Texture("grass_side.png");
-
         world = new World();
         camera = new Camera();
-
+        Texture.loadTextures();
         glfwSetCursorPosCallback(window, (win, x, y) -> {
             if (firstMouse) {
                 lastX = (float) x;
