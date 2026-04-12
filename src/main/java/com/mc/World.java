@@ -8,7 +8,7 @@ import java.io.File;
 import java.util.Scanner;
 
 public class World {
-    private final Map<String, Chunk> chunks = new HashMap<>();
+    public final Map<String, Chunk> chunks = new HashMap<>();
     private long lastCleanupTime = System.currentTimeMillis();
     private List<Chunk> chunksToCleanup = new ArrayList<>();
     public int cleanupIntervalSeconds = 10;

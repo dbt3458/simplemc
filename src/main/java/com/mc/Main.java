@@ -6,15 +6,14 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Scanner;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 
 public class Main {
     private long window;
-    public static final int WIDTH = 1280;
-    public static final int HEIGHT = 720;
+    public static final int WIDTH = 1920;
+    public static final int HEIGHT = 1080;
     private float lastX;
     private float lastY;
     private boolean firstMouse = true;
@@ -24,34 +23,32 @@ public class Main {
     private float velocityY = 0;
     private long lastTime = System.nanoTime();
     private float deltaTime;
+    private CrosshairUI crosshair;
+    // 鼠标点击防抖（必须加！不然破坏放置不生效）
+    private boolean leftClicked = false;
+    private boolean rightClicked = false;
     public void run() {
         init();
         loop();
         free();
     }
-    public class Settings {
 
-        // 一启动就自动调用这个方法！
-        public static void createSettingsIfNotExist() {
-            try {
-                // 当前目录：./settings.cfg
-                File file = new File("settings.cfg");
+    private void generateDefaultConfig() {
+        try {
+            // 🔥 关键：获取 jar 所在的真实目录
+            String jarPath = Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+            File jarFile = new File(jarPath);
+            File configFile = new File(jarFile.getParentFile(), "settings.cfg");
 
-                // 如果文件不存在，就自动创建
-                if (!file.exists()) {
-                    file.createNewFile();
-
-                    // 写入内容
-                    FileWriter writer = new FileWriter(file);
-                    writer.write("render_distance=10\n");
-                    writer.write("chunk_cleanup_interval=15\n");
-                    writer.close();
-
-                    System.out.println("✅ 已自动生成配置文件：settings.cfg");
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (!configFile.exists()) {
+                FileWriter writer = new FileWriter(configFile);
+                writer.write("render_distance=10\n");
+                writer.write("chunk_cleanup_interval=15\n");
+                writer.close();
+                System.out.println("配置已生成: " + configFile.getAbsolutePath());
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     public static int loadRenderDistance() {
@@ -76,7 +73,7 @@ public class Main {
         if (!glfwInit()) {
             throw new IllegalStateException("GLFW 初始化失败");
         }
-        Settings.createSettingsIfNotExist();
+        generateDefaultConfig();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Mini MC", 0, 0);
         if (window == 0) {
             throw new RuntimeException("窗口创建失败");
@@ -110,12 +107,12 @@ public class Main {
             lastX = (float) x;
             lastY = (float) y;
             camera.rotate(dx * 0.1f, dy * 0.1f);
+
         });
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        crosshair = new CrosshairUI(WIDTH, HEIGHT);
     }
-
     // 新增：穿透修正方法（放在 Main 类中）
-// 新增：穿透修正方法（放在 Main 类中）
     private void resolvePenetration(Vector3f pos, float halfWidth, float height) {
         AABB player = getPlayerAABBAt(pos.x, pos.y, pos.z);
 
@@ -173,8 +170,8 @@ public class Main {
                 }
             }
         }
-    }
 
+    }
     // 替换原有的 moveWithCollision 方法
     private void moveWithCollision() {
         Vector3f p = camera.position;
@@ -346,10 +343,83 @@ public class Main {
 
             world.update(playerChunkX, playerChunkZ, renderDistance);
 
+
+            RayCastResult ray = RayCastResult.rayCast(camera, world, 8.0f);
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !leftClicked) {
+                leftClicked = true;
+                if (ray.hit) {
+                    int cx = Math.floorDiv(ray.blockX, 16);
+                    int cz = Math.floorDiv(ray.blockZ, 16);
+                    int lx = ray.blockX - cx * 16;
+                    int lz = ray.blockZ - cz * 16;
+                    Chunk chunk = world.chunks.get(cx + "," + cz);
+
+                    if (chunk != null) {
+                        chunk.setBlock(lx, ray.blockY, lz, false);   // ✅ 直接使用 lx, lz
+                    }
+                }
+            }
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+                leftClicked = false;
+            }
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightClicked) {
+                rightClicked = true;
+                if (ray.hit) {
+                    System.out.println("命中方块: (" + ray.blockX + "," + ray.blockY + "," + ray.blockZ + ") 面=" + ray.face);
+                    int px = ray.blockX, py = ray.blockY, pz = ray.blockZ;
+                    switch (ray.face) {
+                        case 0: py++; break;
+                        case 1: py--; break;
+                        case 2: pz++; break;
+                        case 3: pz--; break;
+                        case 4: px++; break;
+                        case 5: px--; break;
+                    }
+                    System.out.println("偏移后坐标: (" + px + "," + py + "," + pz + ")");
+
+                    // 确保目标区块存在
+                    int cx = Math.floorDiv(px, 16);
+                    int cz = Math.floorDiv(pz, 16);
+                    String key = cx + "," + cz;
+                    if (!world.chunks.containsKey(key)) {
+                        world.chunks.put(key, new Chunk(cx, cz));
+                    }
+                    Chunk chunk = world.chunks.get(key);
+
+                    // 条件1：目标位置无方块（关键修改）
+                    boolean noBlock = !world.hasBlock(px, py, pz);
+                    // 条件2：不与玩家 AABB 重叠
+                    AABB playerBox = getPlayerAABBAt(camera.position.x, camera.position.y, camera.position.z);
+                    AABB targetBox = new AABB(px - 0.5f, py, pz - 0.5f, px + 0.5f, py + 1, pz + 0.5f);
+                    boolean notOverlap = !playerBox.intersects(targetBox);
+                    // 条件3：高度范围
+                    boolean heightOk = (py >= 0 && py < 32);
+
+                    // 必须同时满足三个条件
+                    boolean canPlace = noBlock && notOverlap && heightOk;
+
+                    if (canPlace && chunk != null) {
+                        int lx = px - cx * 16;
+                        int lz = pz - cz * 16;
+                        chunk.setBlock(lx, py, lz, true);
+                        System.out.println("放置成功: (" + px + "," + py + "," + pz + ")");
+                    } else {
+                        // 输出具体失败原因
+                        if (!noBlock) System.out.println("放置失败: 目标位置 (" + px + "," + py + "," + pz + ") 已有方块");
+                        else if (!notOverlap) System.out.println("放置失败: 与玩家重叠");
+                        else if (!heightOk) System.out.println("放置失败: 高度超出范围");
+                        else System.out.println("放置失败: 区块不存在");
+                    }
+                }
+            }
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
+                rightClicked = false;
+            }
             for (Chunk chunk : world.getAllChunks()) {
                 chunk.render();
             }
 
+            crosshair.render();
             glfwSwapBuffers(window);
             glfwPollEvents();
         }

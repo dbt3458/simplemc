@@ -93,7 +93,11 @@ public class ChunkMesh {
     }
     // 构建GPU网格（完全不变）
     public void build() {
-        if (vertices.isEmpty()) return;
+        if (vertices.isEmpty()) {
+            System.out.println("ChunkMesh.build 跳过：顶点为空");
+            return;
+        }
+        System.out.println("ChunkMesh.build 创建网格，顶点数=" + vertices.size()/5);
         float[] data = new float[vertices.size()];
         for (int i = 0; i < data.length; i++) data[i] = vertices.get(i);
 

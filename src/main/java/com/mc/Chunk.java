@@ -10,7 +10,31 @@ public class Chunk {
 
     // 标记是否已经构建过网格
     private boolean meshBuilt = false;
+    public void setBlock(int x, int y, int z, boolean exists) {
+        if (x >= 0 && x < SIZE && y >= 10 && y < 32 && z >= 0 && z < SIZE) {
+            System.out.println("setBlock: 局部("+x+","+y+","+z+") 存在="+exists+" 原值="+blockData[x][y][z]);
+            blockData[x][y][z] = exists;
+            rebuildMesh();
+            System.out.println("rebuildMesh 调用完成");
+        } else {
+            System.out.println("setBlock 越界: "+x+","+y+","+z);
+        }
+    }
+    public void rebuildMesh() {
+        // 清理原有网格
+        meshTop.cleanup();
+        meshSide.cleanup();
+        meshBottom.cleanup();
 
+        // 重置网格数据
+        meshTop.clear();
+        meshSide.clear();
+        meshBottom.clear();
+        meshBuilt = false;
+
+        // 重新构建
+        buildMesh();
+    }
     public Chunk(int chunkX, int chunkZ) {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -38,32 +62,48 @@ public class Chunk {
             }
         }
     }
-
-    // 单次构建，只在主线程调用
     public void buildMesh() {
         if (meshBuilt) return;
-
+        System.out.println("开始构建网格 for chunk ("+chunkX+","+chunkZ+")");
+        int faceCount = 0;
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
-                int h = height(chunkX * SIZE + x, chunkZ * SIZE + z);
-                for (int y = 10; y <= h; y++) {
+                for (int y = 10; y < 32; y++) {
                     if (!blockData[x][y][z]) continue;
+
                     float wx = chunkX * SIZE + x;
                     float wy = y;
                     float wz = chunkZ * SIZE + z;
 
-                    if (y == h) {
+                    // 顶面：上方无方块
+                    if (y + 1 >= 32 || !blockData[x][y+1][z]) {
+                        // 根据方块类型选择纹理（目前所有方块都是草/土混合，可简单用 meshTop）
                         meshTop.addTopFace(wx, wy, wz);
                     }
-                    meshBottom.addBottomFace(wx, wy, wz);
-                    meshSide.addNorthFace(wx, wy, wz);
-                    meshSide.addSouthFace(wx, wy, wz);
-                    meshSide.addEastFace(wx, wy, wz);
-                    meshSide.addWestFace(wx, wy, wz);
+                    // 底面：下方无方块
+                    if (y - 1 < 10 || !blockData[x][y-1][z]) {
+                        meshBottom.addBottomFace(wx, wy, wz);
+                    }
+                    // 北面 (z+1)
+                    if (z + 1 >= SIZE || !blockData[x][y][z+1]) {
+                        meshSide.addNorthFace(wx, wy, wz);
+                    }
+                    // 南面 (z-1)
+                    if (z - 1 < 0 || !blockData[x][y][z-1]) {
+                        meshSide.addSouthFace(wx, wy, wz);
+                    }
+                    // 东面 (x+1)
+                    if (x + 1 >= SIZE || !blockData[x+1][y][z]) {
+                        meshSide.addEastFace(wx, wy, wz);
+                    }
+                    // 西面 (x-1)
+                    if (x - 1 < 0 || !blockData[x-1][y][z]) {
+                        meshSide.addWestFace(wx, wy, wz);
+                    }
                 }
             }
         }
-
+        System.out.println("构建完成，添加了 "+faceCount+" 个面");
         meshTop.build();
         meshSide.build();
         meshBottom.build();
@@ -84,7 +124,6 @@ public class Chunk {
 
     public void render() {
         if (!meshBuilt) return;
-
         meshTop.render(Texture.grassTopTexture);
         meshSide.render(Texture.grassSideTexture);
         meshBottom.render(Texture.dirtTexture);
