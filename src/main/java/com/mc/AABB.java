@@ -24,14 +24,13 @@ public class AABB {
     public float collideX(AABB block, float moveX) {
         if (maxY <= block.minY || minY >= block.maxY) return moveX;
         if (maxZ <= block.minZ || minZ >= block.maxZ) return moveX;
-
         if (moveX > 0) {
             if (maxX <= block.minX + EPSILON) {
-                return Math.min(moveX, block.minX - maxX);
+                return Math.min(moveX, block.minX - maxX - EPSILON);
             }
         } else if (moveX < 0) {
             if (minX >= block.maxX - EPSILON) {
-                return Math.max(moveX, block.maxX - minX);
+                return Math.max(moveX, block.maxX - minX + EPSILON);
             }
         }
         return moveX;
@@ -41,14 +40,13 @@ public class AABB {
     public float collideY(AABB block, float moveY) {
         if (maxX <= block.minX || minX >= block.maxX) return moveY;
         if (maxZ <= block.minZ || minZ >= block.maxZ) return moveY;
-
         if (moveY > 0) {
             if (maxY <= block.minY + EPSILON) {
-                return Math.min(moveY, block.minY - maxY);
+                return Math.min(moveY, block.minY - maxY - EPSILON);
             }
         } else if (moveY < 0) {
             if (minY >= block.maxY - EPSILON) {
-                return Math.max(moveY, block.maxY - minY);
+                return Math.max(moveY, block.maxY - minY + EPSILON);
             }
         }
         return moveY;
@@ -58,14 +56,13 @@ public class AABB {
     public float collideZ(AABB block, float moveZ) {
         if (maxX <= block.minX || minX >= block.maxX) return moveZ;
         if (maxY <= block.minY || minY >= block.maxY) return moveZ;
-
         if (moveZ > 0) {
             if (maxZ <= block.minZ + EPSILON) {
-                return Math.min(moveZ, block.minZ - maxZ);
+                return Math.min(moveZ, block.minZ - maxZ - EPSILON);
             }
         } else if (moveZ < 0) {
             if (minZ >= block.maxZ - EPSILON) {
-                return Math.max(moveZ, block.maxZ - minZ);
+                return Math.max(moveZ, block.maxZ - minZ + EPSILON);
             }
         }
         return moveZ;

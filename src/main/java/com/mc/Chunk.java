@@ -64,7 +64,6 @@ public class Chunk {
     }
     public void buildMesh() {
         if (meshBuilt) return;
-        System.out.println("开始构建网格 for chunk ("+chunkX+","+chunkZ+")");
         int faceCount = 0;
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
@@ -103,7 +102,6 @@ public class Chunk {
                 }
             }
         }
-        System.out.println("构建完成，添加了 "+faceCount+" 个面");
         meshTop.build();
         meshSide.build();
         meshBottom.build();

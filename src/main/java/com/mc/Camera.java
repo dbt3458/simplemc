@@ -9,7 +9,7 @@ public class Camera {
     public float yaw = -90.0f;
     public float pitch = 0.0f;
 
-    private static final float CAMERA_VIEW_HEIGHT = 1.5f;
+    private static final float CAMERA_VIEW_HEIGHT = 1.15f;
 
     public Matrix4f getViewMatrix() {
         Vector3f cameraPos = new Vector3f(position);
@@ -34,7 +34,14 @@ public class Camera {
     public Vector3f getRight() {
         return new Vector3f(front).cross(up).normalize();
     }
-
+    public Vector3f getFront() {
+        Vector3f front = new Vector3f();
+        front.x = (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.y = (float) Math.sin(Math.toRadians(pitch));
+        front.z = (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.normalize();
+        return front;
+    }
     public Vector3f getPosition() {
         return position;
     }

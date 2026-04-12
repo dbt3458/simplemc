@@ -1,0 +1,129 @@
+package com.mc;
+
+import org.joml.Vector3f;
+import static org.lwjgl.glfw.GLFW.*;
+
+public class ProcessInput {
+    private final Camera camera;
+    private final World world;
+    private final long window;
+    private float velocityY = 0.0f;
+    private boolean leftClicked = false;
+    private boolean rightClicked = false;
+    private static final float GRAVITY = 54.0f;
+    private static final float JUMP_POWER = 12.0f;
+    private static final float MOVE_SPEED = 12.0f;
+
+    public ProcessInput(Camera camera, World world, long window) {
+        this.camera = camera;
+        this.world = world;
+        this.window = window;
+    }
+
+    public void process(float deltaTime) {
+        // 1. 移动输入 + 碰撞移动
+        Vector3f moveDelta = computeMoveDelta(deltaTime);
+        Vector3f newPos = Collision.applyMovement(camera.position, moveDelta, world);
+        camera.position.set(newPos);
+
+        // 2. 地面检测与重力更新
+        boolean onGround = Collision.isOnGround(camera.position, world);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && onGround) {
+            velocityY = JUMP_POWER;
+        }
+        if (!onGround) {
+            velocityY -= GRAVITY * deltaTime;
+        } else if (velocityY < 0) {
+            velocityY = 0;
+        }
+
+        // 3. 方块破坏 / 放置
+        RayCastResult ray = RayCastResult.rayCast(camera, world, 8.0f);
+        handleBlockBreaking(ray);
+        handleBlockPlacing(ray);
+    }
+
+    private Vector3f computeMoveDelta(float deltaTime) {
+        Vector3f forward = new Vector3f(camera.front.x, 0, camera.front.z).normalize();
+        Vector3f right = camera.getRight();
+        right.y = 0;
+        right.normalize();
+
+        float mx = 0, mz = 0;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            mx += forward.x;
+            mz += forward.z;
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            mx -= forward.x;
+            mz -= forward.z;
+        }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            mx -= right.x;
+            mz -= right.z;
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            mx += right.x;
+            mz += right.z;
+        }
+        float speed = MOVE_SPEED * deltaTime;
+        float my = velocityY * deltaTime;
+        return new Vector3f(mx * speed, my, mz * speed);
+    }
+
+    private void handleBlockBreaking(RayCastResult ray) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !leftClicked) {
+            leftClicked = true;
+            if (ray.hit) {
+                int cx = Math.floorDiv(ray.blockX, 16);
+                int cz = Math.floorDiv(ray.blockZ, 16);
+                int lx = ray.blockX - cx * 16;
+                int lz = ray.blockZ - cz * 16;
+                Chunk chunk = world.chunks.get(cx + "," + cz);
+                if (chunk != null) {
+                    chunk.setBlock(lx, ray.blockY, lz, false);
+                }
+            }
+        }
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+            leftClicked = false;
+        }
+    }
+
+    private void handleBlockPlacing(RayCastResult ray) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightClicked) {
+            rightClicked = true;
+            if (ray.hit) {
+                int px = ray.blockX, py = ray.blockY, pz = ray.blockZ;
+                switch (ray.face) {
+                    case 0: py++; break;
+                    case 1: py--; break;
+                    case 2: pz++; break;
+                    case 3: pz--; break;
+                    case 4: px++; break;
+                    case 5: px--; break;
+                }
+                int cx = Math.floorDiv(px, 16);
+                int cz = Math.floorDiv(pz, 16);
+                String key = cx + "," + cz;
+                if (!world.chunks.containsKey(key)) {
+                    world.chunks.put(key, new Chunk(cx, cz));
+                }
+                Chunk chunk = world.chunks.get(key);
+                boolean noBlock = !world.hasBlock(px, py, pz);
+                AABB playerBox = Collision.getPlayerAABBAt(camera.position.x, camera.position.y, camera.position.z);
+                AABB targetBox = new AABB(px - 0.5f, py, pz - 0.5f, px + 0.5f, py + 1, pz + 0.5f);
+                boolean notOverlap = !playerBox.intersects(targetBox);
+                boolean heightOk = (py >= 0 && py < 32);
+                if (noBlock && notOverlap && heightOk && chunk != null) {
+                    int lx = px - cx * 16;
+                    int lz = pz - cz * 16;
+                    chunk.setBlock(lx, py, lz, true);
+                }
+            }
+        }
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
+            rightClicked = false;
+        }
+    }
+}

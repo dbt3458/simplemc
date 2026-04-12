@@ -20,13 +20,10 @@ public class Main {
     private Camera camera;
     private World world;
     private Shader shader;
-    private float velocityY = 0;
     private long lastTime = System.nanoTime();
     private float deltaTime;
     private CrosshairUI crosshair;
-    // 鼠标点击防抖（必须加！不然破坏放置不生效）
-    private boolean leftClicked = false;
-    private boolean rightClicked = false;
+    private ProcessInput processInput;
     public void run() {
         init();
         loop();
@@ -111,217 +108,9 @@ public class Main {
         });
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         crosshair = new CrosshairUI(WIDTH, HEIGHT);
-    }
-    // 新增：穿透修正方法（放在 Main 类中）
-    private void resolvePenetration(Vector3f pos, float halfWidth, float height) {
-        AABB player = getPlayerAABBAt(pos.x, pos.y, pos.z);
-
-        int minX = (int) Math.floor(player.minX) - 1;
-        int maxX = (int) Math.ceil(player.maxX) + 1;
-        int minY = (int) Math.floor(player.minY) - 2;
-        int maxY = (int) Math.ceil(player.maxY) + 2;
-        int minZ = (int) Math.floor(player.minZ) - 1;
-        int maxZ = (int) Math.ceil(player.maxZ) + 1;
-
-        for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    if (world.hasBlock(bx, by, bz)) {
-                        AABB block = new AABB(bx - 0.5f, by, bz - 0.5f, bx + 0.5f, by + 1, bz + 0.5f);
-
-                        if (player.intersects(block)) {
-                            // 🔥 极简逻辑：只算穿透深度，选最小的推
-                            float depthX = Math.min(player.maxX - block.minX, block.maxX - player.minX);
-                            float depthY = Math.min(player.maxY - block.minY, block.maxY - player.minY);
-                            float depthZ = Math.min(player.maxZ - block.minZ, block.maxZ - player.minZ);
-
-                            // 🔥 关键：如果是侧面接触（X/Z有重叠但不是完全覆盖），优先推X/Z
-                            boolean xFullyOverlaps = player.minX < block.maxX && player.maxX > block.minX;
-                            boolean zFullyOverlaps = player.minZ < block.maxZ && player.maxZ > block.minZ;
-
-                            // 只有当X和Z都完全覆盖方块时，才考虑Y轴推挤（真正的脚踩/头顶）
-                            if (depthY <= depthX && depthY <= depthZ && xFullyOverlaps && zFullyOverlaps) {
-                                // Y轴推挤
-                                if (pos.y + height/2 > by + 0.5f) {
-                                    pos.y = block.maxY;
-                                } else {
-                                    pos.y = block.minY - height;
-                                }
-                            } else if (depthX <= depthZ) {
-                                // X轴推挤
-                                if (pos.x > bx) {
-                                    pos.x = block.maxX + halfWidth;
-                                } else {
-                                    pos.x = block.minX - halfWidth;
-                                }
-                            } else {
-                                // Z轴推挤
-                                if (pos.z > bz) {
-                                    pos.z = block.maxZ + halfWidth;
-                                } else {
-                                    pos.z = block.minZ - halfWidth;
-                                }
-                            }
-
-                            // 更新player AABB继续检查
-                            player = getPlayerAABBAt(pos.x, pos.y, pos.z);
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-    // 替换原有的 moveWithCollision 方法
-    private void moveWithCollision() {
-        Vector3f p = camera.position;
-        float speed = 12f;
-        float delta = deltaTime;
-        final float HALF_WIDTH = 0.3f;
-        final float HEIGHT = 1.8f;
-
-        // 移动方向
-        Vector3f forward = new Vector3f(camera.front.x, 0, camera.front.z).normalize();
-        Vector3f right = camera.getRight();
-        right.y = 0;
-        right.normalize();
-
-        float mx = 0, mz = 0;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            mx += forward.x * speed * delta;
-            mz += forward.z * speed * delta;
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            mx -= forward.x * speed * delta;
-            mz -= forward.z * speed * delta;
-        }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            mx -= right.x * speed * delta;
-            mz -= right.z * speed * delta;
-        }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            mx += right.x * speed * delta;
-            mz += right.z * speed * delta;
-        }
-
-        // -------------------- Y轴移动 + 碰撞 --------------------
-// -------------------- Y轴移动 + 碰撞 --------------------
-        float my = velocityY * delta;
-        Vector3f tempPos = new Vector3f(p);
-        AABB playerBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-
-        int minX = (int) Math.floor(playerBox.minX) - 1;
-        int maxX = (int) Math.ceil(playerBox.maxX) + 1;
-        int minY = (int) Math.floor(playerBox.minY) - 2;
-        int maxY = (int) Math.ceil(playerBox.maxY) + 2;
-        int minZ = (int) Math.floor(playerBox.minZ) - 1;
-        int maxZ = (int) Math.ceil(playerBox.maxZ) + 1;
-
-        for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    if (world.hasBlock(bx, by, bz)) {
-                        AABB block = new AABB(bx - 0.5f, by, bz - 0.5f, bx + 0.5f, by + 1, bz + 0.5f);
-                        AABB testBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-
-                        // 🔥 新增：只有当玩家在方块X/Z范围内时，才处理Y轴碰撞
-                        boolean xOverlaps = testBox.minX < block.maxX && testBox.maxX > block.minX;
-                        boolean zOverlaps = testBox.minZ < block.maxZ && testBox.maxZ > block.minZ;
-
-                        if (xOverlaps && zOverlaps) {
-                            my = testBox.collideY(block, my);
-                        }
-                    }
-                }
-            }
-        }
-        p.y += my;
-        resolvePenetration(p, HALF_WIDTH, HEIGHT);
-
-        // -------------------- X轴移动 + 碰撞 --------------------
-        tempPos.set(p);
-        playerBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-        minX = (int) Math.floor(playerBox.minX) - 1;
-        maxX = (int) Math.ceil(playerBox.maxX) + 1;
-        minY = (int) Math.floor(playerBox.minY) - 2;
-        maxY = (int) Math.ceil(playerBox.maxY) + 2;
-        minZ = (int) Math.floor(playerBox.minZ) - 1;
-        maxZ = (int) Math.ceil(playerBox.maxZ) + 1;
-
-        for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    if (world.hasBlock(bx, by, bz)) {
-                        AABB block = new AABB(bx - 0.5f, by, bz - 0.5f, bx + 0.5f, by + 1, bz + 0.5f);
-                        AABB testBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-                        mx = testBox.collideX(block, mx);
-                    }
-                }
-            }
-        }
-        p.x += mx;
-        resolvePenetration(p, HALF_WIDTH, HEIGHT);
-
-        // -------------------- Z轴移动 + 碰撞 --------------------
-        tempPos.set(p);
-        playerBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-        minX = (int) Math.floor(playerBox.minX) - 1;
-        maxX = (int) Math.ceil(playerBox.maxX) + 1;
-        minY = (int) Math.floor(playerBox.minY) - 2;
-        maxY = (int) Math.ceil(playerBox.maxY) + 2;
-        minZ = (int) Math.floor(playerBox.minZ) - 1;
-        maxZ = (int) Math.ceil(playerBox.maxZ) + 1;
-
-        for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    if (world.hasBlock(bx, by, bz)) {
-                        AABB block = new AABB(bx - 0.5f, by, bz - 0.5f, bx + 0.5f, by + 1, bz + 0.5f);
-                        AABB testBox = getPlayerAABBAt(tempPos.x, tempPos.y, tempPos.z);
-                        mz = testBox.collideZ(block, mz);
-                    }
-                }
-            }
-        }
-        p.z += mz;
-        resolvePenetration(p, HALF_WIDTH, HEIGHT);
-
-        // 应用最终位置
-        camera.position.set(p);
-
-        // -------------------- 地面检测与重力 --------------------
-        boolean onGround = false;
-        AABB feetCheck = getPlayerAABBAt(p.x, p.y - 0.01f, p.z);
-        int checkY = (int) Math.floor(p.y - 0.1f);
-        for (int bx = (int) Math.floor(feetCheck.minX); bx <= (int) Math.ceil(feetCheck.maxX); bx++) {
-            for (int bz = (int) Math.floor(feetCheck.minZ); bz <= (int) Math.ceil(feetCheck.maxZ); bz++) {
-                if (world.hasBlock(bx, checkY, bz)) {
-                    AABB block = new AABB(bx - 0.5f, checkY, bz - 0.5f, bx + 0.5f, checkY + 1, bz + 0.5f);
-                    if (feetCheck.intersects(block)) {
-                        onGround = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && onGround) {
-            velocityY = 12.0f;
-        }
-        if (!onGround) {
-            velocityY -= 54.0f * delta;
-        }
-        if (onGround && velocityY < 0) {
-            velocityY = 0;
-        }
+        processInput = new ProcessInput(camera, world, window);
     }
 
-    // 辅助方法（保持不变）
-    private AABB getPlayerAABBAt(float x, float y, float z) {
-        float w = 0.6f;
-        float h = 1.8f;
-        return new AABB(x - w/2, y, z - w/2, x + w/2, y + h, z + w/2);
-    }
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -329,92 +118,29 @@ public class Main {
             deltaTime = (now - lastTime) / 1_000_000_000f;
             lastTime = now;
             world.cleanupPendingChunks();
-            moveWithCollision();
+            processInput.process(deltaTime);
+
+            // ====================== 【适配你的原版Camera - 相机防穿模】 ======================
+            RayCastResult cameraRay = RayCastResult.rayCast(camera, world, 0.4f);
+            if (cameraRay.hit) {
+                float pullBack = 0.08f;
+                // 直接使用你的 camera.front 成员变量，零报错
+                camera.position.x -= camera.front.x * pullBack;
+                camera.position.y -= camera.front.y * pullBack;
+                camera.position.z -= camera.front.z * pullBack;
+            }
+            // ============================================================================
 
             Vector3f p = camera.getPosition();
             int playerChunkX = (int) Math.floor(p.x / 16.0f);
             int playerChunkZ = (int) Math.floor(p.z / 16.0f);
 
-
             shader.use();
             shader.setMat4("model", new Matrix4f());
             shader.setMat4("view", camera.getViewMatrix());
             shader.setMat4("projection", new Matrix4f().perspective((float) Math.toRadians(70), (float)WIDTH/HEIGHT, 0.3f, 1000));
-
+            Collision.resolveCameraCollision(camera, world, 0.08f);
             world.update(playerChunkX, playerChunkZ, renderDistance);
-
-
-            RayCastResult ray = RayCastResult.rayCast(camera, world, 8.0f);
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !leftClicked) {
-                leftClicked = true;
-                if (ray.hit) {
-                    int cx = Math.floorDiv(ray.blockX, 16);
-                    int cz = Math.floorDiv(ray.blockZ, 16);
-                    int lx = ray.blockX - cx * 16;
-                    int lz = ray.blockZ - cz * 16;
-                    Chunk chunk = world.chunks.get(cx + "," + cz);
-
-                    if (chunk != null) {
-                        chunk.setBlock(lx, ray.blockY, lz, false);   // ✅ 直接使用 lx, lz
-                    }
-                }
-            }
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-                leftClicked = false;
-            }
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightClicked) {
-                rightClicked = true;
-                if (ray.hit) {
-                    System.out.println("命中方块: (" + ray.blockX + "," + ray.blockY + "," + ray.blockZ + ") 面=" + ray.face);
-                    int px = ray.blockX, py = ray.blockY, pz = ray.blockZ;
-                    switch (ray.face) {
-                        case 0: py++; break;
-                        case 1: py--; break;
-                        case 2: pz++; break;
-                        case 3: pz--; break;
-                        case 4: px++; break;
-                        case 5: px--; break;
-                    }
-                    System.out.println("偏移后坐标: (" + px + "," + py + "," + pz + ")");
-
-                    // 确保目标区块存在
-                    int cx = Math.floorDiv(px, 16);
-                    int cz = Math.floorDiv(pz, 16);
-                    String key = cx + "," + cz;
-                    if (!world.chunks.containsKey(key)) {
-                        world.chunks.put(key, new Chunk(cx, cz));
-                    }
-                    Chunk chunk = world.chunks.get(key);
-
-                    // 条件1：目标位置无方块（关键修改）
-                    boolean noBlock = !world.hasBlock(px, py, pz);
-                    // 条件2：不与玩家 AABB 重叠
-                    AABB playerBox = getPlayerAABBAt(camera.position.x, camera.position.y, camera.position.z);
-                    AABB targetBox = new AABB(px - 0.5f, py, pz - 0.5f, px + 0.5f, py + 1, pz + 0.5f);
-                    boolean notOverlap = !playerBox.intersects(targetBox);
-                    // 条件3：高度范围
-                    boolean heightOk = (py >= 0 && py < 32);
-
-                    // 必须同时满足三个条件
-                    boolean canPlace = noBlock && notOverlap && heightOk;
-
-                    if (canPlace && chunk != null) {
-                        int lx = px - cx * 16;
-                        int lz = pz - cz * 16;
-                        chunk.setBlock(lx, py, lz, true);
-                        System.out.println("放置成功: (" + px + "," + py + "," + pz + ")");
-                    } else {
-                        // 输出具体失败原因
-                        if (!noBlock) System.out.println("放置失败: 目标位置 (" + px + "," + py + "," + pz + ") 已有方块");
-                        else if (!notOverlap) System.out.println("放置失败: 与玩家重叠");
-                        else if (!heightOk) System.out.println("放置失败: 高度超出范围");
-                        else System.out.println("放置失败: 区块不存在");
-                    }
-                }
-            }
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
-                rightClicked = false;
-            }
             for (Chunk chunk : world.getAllChunks()) {
                 chunk.render();
             }
@@ -424,6 +150,7 @@ public class Main {
             glfwPollEvents();
         }
     }
+
 
 
     private void free() {

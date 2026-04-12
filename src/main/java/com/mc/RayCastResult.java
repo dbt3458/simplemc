@@ -22,16 +22,16 @@ public class RayCastResult {
      */
     public static RayCastResult rayCast(Camera camera, World world, float maxDist) {
         RayCastResult res = new RayCastResult();
-        Vector3f start = new Vector3f(camera.position).add(0, 1.5f, 0);
+        Vector3f start = new Vector3f(camera.position).add(0, 1.15f, 0);
         Vector3f dir = new Vector3f(camera.front).normalize();
 
         int bx = (int) Math.floor(start.x + 0.5f);
         int by = (int) Math.floor(start.y + 0.5f);
         int bz = (int) Math.floor(start.z + 0.5f);
 
-        int stepX = (dir.x > 0) ? 1 : -1;
-        int stepY = (dir.y > 0) ? 1 : -1;
-        int stepZ = (dir.z > 0) ? 1 : -1;
+        int stepX = dir.x > 0 ? 1 : -1;
+        int stepY = dir.y > 0 ? 1 : -1;
+        int stepZ = dir.z > 0 ? 1 : -1;
 
         float tDeltaX = (dir.x == 0) ? Float.POSITIVE_INFINITY : Math.abs(1.0f / dir.x);
         float tDeltaY = (dir.y == 0) ? Float.POSITIVE_INFINITY : Math.abs(1.0f / dir.y);
@@ -51,6 +51,8 @@ public class RayCastResult {
         else tMaxZ = Float.POSITIVE_INFINITY;
 
         float distance = 0;
+        int lastStepAxis = -1; // 0:X, 1:Y, 2:Z
+
         while (distance < maxDist) {
             if (world.hasBlock(bx, by, bz)) {
                 res.hit = true;
@@ -58,64 +60,44 @@ public class RayCastResult {
                 res.blockY = by;
                 res.blockZ = bz;
 
-                // 精确计算击中的面
-                float t = Float.POSITIVE_INFINITY;
-                int hitFace = -1;
-                for (int i = 0; i < 6; i++) {
-                    float nx = 0, ny = 0, nz = 0, d = 0; // 初始化，避免编译错误
-                    switch (i) {
-                        case 0: nx = 0; ny = 1; nz = 0; d = by + 0.5f; break; // 上
-                        case 1: nx = 0; ny = -1; nz = 0; d = by - 0.5f; break; // 下
-                        case 2: nx = 0; ny = 0; nz = 1; d = bz + 0.5f; break; // 北
-                        case 3: nx = 0; ny = 0; nz = -1; d = bz - 0.5f; break; // 南
-                        case 4: nx = 1; ny = 0; nz = 0; d = bx + 0.5f; break; // 东
-                        case 5: nx = -1; ny = 0; nz = 0; d = bx - 0.5f; break; // 西
-                    }
-                    float denom = dir.x * nx + dir.y * ny + dir.z * nz;
-                    if (Math.abs(denom) < 1e-6) continue;
-                    float tPlane = (d - (start.x * nx + start.y * ny + start.z * nz)) / denom;
-                    if (tPlane < 0 || tPlane > t) continue;
-                    // 计算交点
-                    float ix = start.x + dir.x * tPlane;
-                    float iy = start.y + dir.y * tPlane;
-                    float iz = start.z + dir.z * tPlane;
-                    float eps = 1e-4f;
-                    boolean inside = false;
-                    switch (i) {
-                        case 0: case 1: // 上下
-                            inside = (ix >= bx - 0.5f - eps && ix <= bx + 0.5f + eps &&
-                                    iz >= bz - 0.5f - eps && iz <= bz + 0.5f + eps);
-                            break;
-                        case 2: case 3: // 北南
-                            inside = (ix >= bx - 0.5f - eps && ix <= bx + 0.5f + eps &&
-                                    iy >= by - 0.5f - eps && iy <= by + 0.5f + eps);
-                            break;
-                        case 4: case 5: // 东西
-                            inside = (iy >= by - 0.5f - eps && iy <= by + 0.5f + eps &&
-                                    iz >= bz - 0.5f - eps && iz <= bz + 0.5f + eps);
-                            break;
-                    }
-                    if (inside) {
-                        t = tPlane;
-                        hitFace = i;
-                    }
+                // 根据最后一步的轴和方向确定击中的面
+                if (lastStepAxis == 0) {
+                    // 向 stepX 方向步进，射线从相反方向击中
+                    res.face = (stepX > 0) ? 5 : 4; // stepX>0 向西步进 → 击中西面(5)
+                } else if (lastStepAxis == 1) {
+                    res.face = (stepY > 0) ? 1 : 0; // stepY>0 向下步进 → 击中下面(1)
+                } else if (lastStepAxis == 2) {
+                    res.face = (stepZ > 0) ? 3 : 2; // stepZ>0 向南步进 → 击中南面(3)
+                } else {
+                    // 起点就在方块内（极少情况），回退到基于偏移的判定
+                    float hitX = start.x + dir.x * distance;
+                    float hitY = start.y + dir.y * distance;
+                    float hitZ = start.z + dir.z * distance;
+                    float dx = hitX - bx, dy = hitY - by, dz = hitZ - bz;
+                    float adx = Math.abs(dx), ady = Math.abs(dy), adz = Math.abs(dz);
+                    if (adx > ady && adx > adz) res.face = dx > 0 ? 4 : 5;
+                    else if (ady > adz) res.face = dy > 0 ? 0 : 1;
+                    else res.face = dz > 0 ? 2 : 3;
                 }
-                res.face = hitFace;
                 return res;
             }
 
+            // 步进并记录移动轴
             if (tMaxX < tMaxY && tMaxX < tMaxZ) {
                 distance = tMaxX;
                 bx += stepX;
                 tMaxX += tDeltaX;
+                lastStepAxis = 0;
             } else if (tMaxY < tMaxZ) {
                 distance = tMaxY;
                 by += stepY;
                 tMaxY += tDeltaY;
+                lastStepAxis = 1;
             } else {
                 distance = tMaxZ;
                 bz += stepZ;
                 tMaxZ += tDeltaZ;
+                lastStepAxis = 2;
             }
         }
         return res;
