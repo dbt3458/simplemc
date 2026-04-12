@@ -21,22 +21,25 @@ public class ProcessInput {
     }
 
     public void process(float deltaTime) {
-        // 1. 移动输入 + 碰撞移动
-        Vector3f moveDelta = computeMoveDelta(deltaTime);
-        Vector3f newPos = Collision.applyMovement(camera.position, moveDelta, world);
-        camera.position.set(newPos);
 
-        // 2. 地面检测与重力更新
         boolean onGround = Collision.isOnGround(camera.position, world);
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && onGround) {
-            velocityY = JUMP_POWER;
+            velocityY = 12.0f;          // 跳跃初速度
         }
         if (!onGround) {
-            velocityY -= GRAVITY * deltaTime;
+            velocityY -= 54.0f * deltaTime;
         } else if (velocityY < 0) {
             velocityY = 0;
         }
+        float my = velocityY * deltaTime;
 
+// 计算水平移动
+        Vector3f moveDelta = computeMoveDelta(deltaTime);
+        moveDelta.y = my;
+
+        Vector3f newPos = Collision.moveAndCollide(camera.position, moveDelta, world);
+        camera.position.set(newPos);
+        camera.position.set(newPos);
         // 3. 方块破坏 / 放置
         RayCastResult ray = RayCastResult.rayCast(camera, world, 8.0f);
         handleBlockBreaking(ray);

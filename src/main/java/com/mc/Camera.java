@@ -14,6 +14,8 @@ public class Camera {
     public Matrix4f getViewMatrix() {
         Vector3f cameraPos = new Vector3f(position);
         cameraPos.y += CAMERA_VIEW_HEIGHT;
+        // 将相机向后偏移 0.1 米（沿视线反方向）
+        cameraPos.sub(front.mul(0.1f, new Vector3f()));
         Vector3f target = new Vector3f(cameraPos).add(front);
         return new Matrix4f().lookAt(cameraPos, target, up);
     }
@@ -33,14 +35,6 @@ public class Camera {
     // 🔥 新增：直接获取标准 right 向量（永远正确）
     public Vector3f getRight() {
         return new Vector3f(front).cross(up).normalize();
-    }
-    public Vector3f getFront() {
-        Vector3f front = new Vector3f();
-        front.x = (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
-        front.y = (float) Math.sin(Math.toRadians(pitch));
-        front.z = (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
-        front.normalize();
-        return front;
     }
     public Vector3f getPosition() {
         return position;

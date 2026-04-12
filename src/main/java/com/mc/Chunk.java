@@ -15,9 +15,6 @@ public class Chunk {
             System.out.println("setBlock: 局部("+x+","+y+","+z+") 存在="+exists+" 原值="+blockData[x][y][z]);
             blockData[x][y][z] = exists;
             rebuildMesh();
-            System.out.println("rebuildMesh 调用完成");
-        } else {
-            System.out.println("setBlock 越界: "+x+","+y+","+z);
         }
     }
     public void rebuildMesh() {
