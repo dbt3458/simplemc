@@ -84,10 +84,6 @@ public class ChunkMesh {
         vertices.clear();
     }
 
-    // 合并数据（安全）
-    public void merge(ChunkMesh other) {
-        vertices.addAll(other.vertices);
-    }
     // 构建GPU网格（完全不变）
     public void build() {
         if (vertices.isEmpty()) return;

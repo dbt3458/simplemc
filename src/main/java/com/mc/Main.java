@@ -41,7 +41,7 @@ public class Main {
         if (window == 0) {
             throw new RuntimeException("窗口创建失败");
         }
-        System.out.println(renderDistance);
+        System.out.println("当前渲染距离"+renderDistance+"区块");
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - WIDTH) / 2, (vidmode.height() - HEIGHT) / 2);
         glfwMakeContextCurrent(window);
@@ -80,10 +80,11 @@ public class Main {
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            world.cleanupPendingChunks();
             long now = System.nanoTime();
             deltaTime = (now - lastTime) / 1_000_000_000f;
             lastTime = now;
-            world.cleanupPendingChunks();
+            if (deltaTime > 0.03f) deltaTime = 0.03f;   // 避免卡顿时穿透
             processInput.process(deltaTime);
             Vector3f p = camera.getPosition();
             int playerChunkX = (int) Math.floor(p.x / 16.0f);

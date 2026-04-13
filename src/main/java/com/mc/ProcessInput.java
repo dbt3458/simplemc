@@ -12,7 +12,7 @@ public class ProcessInput {
     private boolean rightClicked = false;
     private static final float GRAVITY = 54.0f;
     private static final float JUMP_POWER = 12.0f;
-    private static final float MOVE_SPEED = 12.0f;
+    private static final float MOVE_SPEED = 10.0f;
 
     public ProcessInput(Camera camera, World world, long window) {
         this.camera = camera;
@@ -44,6 +44,18 @@ public class ProcessInput {
         RayCastResult ray = RayCastResult.rayCast(camera, world, 8.0f);
         handleBlockBreaking(ray);
         handleBlockPlacing(ray);
+        Vector3f oldPos = new Vector3f(camera.position);
+
+// 限制实际位移长度不超过期望长度（修复贴墙加速）
+        Vector3f expectedMove = new Vector3f(moveDelta);
+        Vector3f actualMove = new Vector3f(newPos).sub(oldPos);
+        float expectedLen = expectedMove.length();
+        float actualLen = actualMove.length();
+        if (expectedLen > 1e-5f && actualLen > expectedLen * 1.01f) {
+            actualMove.mul(expectedLen / actualLen);
+            newPos = oldPos.add(actualMove);
+        }
+        camera.position.set(newPos);
     }
 
     private Vector3f computeMoveDelta(float deltaTime) {
@@ -69,9 +81,16 @@ public class ProcessInput {
             mx += right.x;
             mz += right.z;
         }
+
+        // 归一化（防止斜向速度过快）
+        float len = (float) Math.sqrt(mx * mx + mz * mz);
+        if (len > 1e-5f) {
+            mx /= len;
+            mz /= len;
+        }
+
         float speed = MOVE_SPEED * deltaTime;
-        float my = velocityY * deltaTime;
-        return new Vector3f(mx * speed, my, mz * speed);
+        return new Vector3f(mx * speed, 0, mz * speed);
     }
 
     private void handleBlockBreaking(RayCastResult ray) {
