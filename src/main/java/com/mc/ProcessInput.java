@@ -82,7 +82,6 @@ public class ProcessInput {
             mz += right.z;
         }
 
-        // 归一化（防止斜向速度过快）
         float len = (float) Math.sqrt(mx * mx + mz * mz);
         if (len > 1e-5f) {
             mx /= len;

@@ -84,7 +84,7 @@ public class Main {
             long now = System.nanoTime();
             deltaTime = (now - lastTime) / 1_000_000_000f;
             lastTime = now;
-            if (deltaTime > 0.03f) deltaTime = 0.03f;   // 避免卡顿时穿透
+            deltaTime = Math.min(deltaTime, 0.03f);// 避免卡顿时穿透
             processInput.process(deltaTime);
             Vector3f p = camera.getPosition();
             int playerChunkX = (int) Math.floor(p.x / 16.0f);
