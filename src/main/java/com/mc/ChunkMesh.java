@@ -8,9 +8,6 @@ public class ChunkMesh {
     private int vertexCount = 0;
     private final ArrayList<Float> vertices = new ArrayList<>();
 
-    // 🔹 顶面（草顶专用）
-// 🔹 顶面（草方块顶部）【已修复：正确逆时针顶点顺序】
-    // 🔹 顶面（草方块顶部）【已修复】
     public void addTopFace(float x, float y, float z) {
         // 三角形1
         vertices.add(x-0.5f); vertices.add(y+0.5f); vertices.add(z-0.5f); vertices.add(0.0f); vertices.add(1.0f);
