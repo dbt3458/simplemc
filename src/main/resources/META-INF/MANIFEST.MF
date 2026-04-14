@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Main-Class: com.mc.Main
+Class-Path: lwjgl-3.3.2.jar lwjgl-stb-3.3.2-natives-windows.jar lwjgl-op
+ engl-3.3.2.jar lwjgl-stb-3.3.2.jar lwjgl-opengl-3.3.2-natives-windows.j
+ ar lwjgl-glfw-3.3.2-natives-windows.jar lwjgl-3.3.2-natives-windows.jar
+  joml-1.10.5.jar lwjgl-glfw-3.3.2.jar
+
