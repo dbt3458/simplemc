@@ -57,6 +57,8 @@ public class Main {
         shader = new Shader();
         world = new World();
         camera = new Camera();
+        long worldSeed = System.currentTimeMillis(); // 或使用固定的种子值，以便于调试
+        Chunk.initTerrainGenerator(worldSeed);
         Texture.loadTextures();
         glfwSetCursorPosCallback(window, (win, x, y) -> {
             if (firstMouse) {

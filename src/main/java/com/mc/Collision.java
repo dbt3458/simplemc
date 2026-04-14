@@ -47,6 +47,8 @@ public class Collision {
     private static void forceNoPenetration(Vector3f pos, World world) {
         AABB player = getPlayerAABBAt(pos.x, pos.y, pos.z);
         boolean fixed;
+        int maxIter = 100;          // 最多尝试100次
+        int iter = 0;
         do {
             fixed = false;
             int minX = (int) Math.floor(player.minX);
@@ -72,24 +74,29 @@ public class Collision {
                                 float dy = Math.min(dy1, dy2);
                                 float dz = Math.min(dz1, dz2);
                                 if (dy <= dx && dy <= dz) {
-                                    if (dy1 < dy2) pos.y -= dy1 + FIX_AMOUNT;
-                                    else pos.y += dy2 + FIX_AMOUNT;
+                                    if (dy1 < dy2) pos.y -= dy1 + 0.001f;
+                                    else pos.y += dy2 + 0.001f;
                                 } else if (dx <= dz) {
-                                    if (dx1 < dx2) pos.x -= dx1 + FIX_AMOUNT;
-                                    else pos.x += dx2 + FIX_AMOUNT;
+                                    if (dx1 < dx2) pos.x -= dx1 + 0.001f;
+                                    else pos.x += dx2 + 0.001f;
                                 } else {
-                                    if (dz1 < dz2) pos.z -= dz1 + FIX_AMOUNT;
-                                    else pos.z += dz2 + FIX_AMOUNT;
+                                    if (dz1 < dz2) pos.z -= dz1 + 0.001f;
+                                    else pos.z += dz2 + 0.001f;
                                 }
                                 fixed = true;
                                 player = getPlayerAABBAt(pos.x, pos.y, pos.z);
-                                break; // 重新开始检测
+                                break;
                             }
                         }
                     }
                     if (fixed) break;
                 }
                 if (fixed) break;
+            }
+            iter++;
+            if (iter > maxIter) {
+                System.err.println("forceNoPenetration: 达到最大迭代次数 " + maxIter + "，强制退出以避免死循环");
+                break;
             }
         } while (fixed);
     }
