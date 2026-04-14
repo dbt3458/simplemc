@@ -12,7 +12,7 @@ public class ProcessInput {
     private boolean rightClicked = false;
     private static final float GRAVITY = 54.0f;
     private static final float JUMP_POWER = 12.0f;
-    private static final float MOVE_SPEED = 10.0f;
+    private static final float MOVE_SPEED = 30.0f;//10f最佳
 
     public ProcessInput(Camera camera, World world, long window) {
         this.camera = camera;
@@ -135,7 +135,7 @@ public class ProcessInput {
                 AABB playerBox = Collision.getPlayerAABBAt(camera.position.x, camera.position.y, camera.position.z);
                 AABB targetBox = new AABB(px - 0.5f, py, pz - 0.5f, px + 0.5f, py + 1, pz + 0.5f);
                 boolean notOverlap = !playerBox.intersects(targetBox);
-                boolean heightOk = (py >= 0 && py < 32);
+                boolean heightOk = (py >= 0 && py < 256);
                 if (noBlock && notOverlap && heightOk && chunk != null) {
                     int lx = px - cx * 16;
                     int lz = pz - cz * 16;

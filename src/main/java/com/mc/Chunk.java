@@ -6,12 +6,12 @@ public class Chunk {
     private final ChunkMesh meshTop = new ChunkMesh();
     private final ChunkMesh meshSide = new ChunkMesh();
     private final ChunkMesh meshBottom = new ChunkMesh();
-    private final boolean[][][] blockData = new boolean[SIZE][32][SIZE];
+    private final boolean[][][] blockData = new boolean[SIZE][256][SIZE];
 
     // 标记是否已经构建过网格
     private boolean meshBuilt = false;
     public void setBlock(int x, int y, int z, boolean exists) {
-        if (x >= 0 && x < SIZE && y >= 10 && y < 32 && z >= 0 && z < SIZE) {
+        if (x >= 0 && x < SIZE && y >= 10 && y < 256 && z >= 0 && z < SIZE) {
             System.out.println("setBlock: 局部("+x+","+y+","+z+") 存在="+exists+" 原值="+blockData[x][y][z]);
             blockData[x][y][z] = exists;
             rebuildMesh();
@@ -64,7 +64,7 @@ public class Chunk {
         int faceCount = 0;
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
-                for (int y = 10; y < 32; y++) {
+                for (int y = 10; y < 256; y++) {
                     if (!blockData[x][y][z]) continue;
 
                     float wx = chunkX * SIZE + x;
@@ -72,7 +72,7 @@ public class Chunk {
                     float wz = chunkZ * SIZE + z;
 
                     // 顶面：上方无方块
-                    if (y + 1 >= 32 || !blockData[x][y+1][z]) {
+                    if (y + 1 >= 267 || !blockData[x][y+1][z]) {
                         // 根据方块类型选择纹理（目前所有方块都是草/土混合，可简单用 meshTop）
                         meshTop.addTopFace(wx, wy, wz);
                     }
@@ -125,6 +125,6 @@ public class Chunk {
     }
 
     public boolean hasBlock(int x, int y, int z) {
-        return y >= 10 && y < 32 && blockData[x][y][z];
+        return y >= 10 && y < 256 && blockData[x][y][z];
     }
 }
