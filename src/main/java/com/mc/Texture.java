@@ -15,19 +15,18 @@ public class Texture {
     public static Texture dirtTexture;
     public static Texture grassTopTexture;
     public static Texture grassSideTexture;
+    public static Texture stoneTexture;
     public static void loadTextures()
 
     {
         dirtTexture = new Texture(Texture.class.getResourceAsStream("/dirt.png"));
         grassTopTexture = new Texture(Texture.class.getResourceAsStream("/grass_top.png"));
         grassSideTexture = new Texture(Texture.class.getResourceAsStream("/grass_side.png"));
+        stoneTexture = new Texture(Texture.class.getResourceAsStream("/stone.png"));
+
 
     }
 
-    // 原来的构造方法（保留，不影响你现有代码）
-    public Texture(String path) {
-        this(Texture.class.getResourceAsStream("/" + path));
-    }
 
     // 🔥 新增：支持 Jar 包内读取的构造方法（核心）
     public Texture(InputStream inputStream) {
@@ -55,7 +54,8 @@ public class Texture {
 
             width = w.get();
             height = h.get();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException("读取材质流失败", e);
         }
 
@@ -68,7 +68,6 @@ public class Texture {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
         STBImage.stbi_image_free(buffer);
     }
-
 
     public void bind() {
         glBindTexture(GL_TEXTURE_2D, id);

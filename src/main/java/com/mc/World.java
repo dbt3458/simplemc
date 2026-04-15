@@ -4,19 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-import java.io.File;
-import java.util.Scanner;
 
 public class World {
     public final Map<String, Chunk> chunks = new HashMap<>();
     private long lastCleanupTime = System.currentTimeMillis();
     private List<Chunk> chunksToCleanup = new ArrayList<>();
-    public int cleanupIntervalSeconds = 10;
-
-    public World() {
-        loadCleanupInterval();
-    }
-
+    public int cleanupIntervalSeconds;
     public void addChunkToCleanup(Chunk chunk) {
         chunksToCleanup.add(chunk);
     }
@@ -61,21 +54,6 @@ public class World {
         }
     }
 
-    public void loadCleanupInterval() {
-        try {
-            Scanner scanner = new Scanner(new File("settings.cfg"));
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine().trim();
-                if (line.startsWith("chunk_cleanup_interval=")) {
-                    String val = line.split("=")[1].trim();
-                    cleanupIntervalSeconds = Integer.parseInt(val);
-                }
-            }
-            scanner.close();
-        } catch (Exception e) {
-            cleanupIntervalSeconds = 10;
-        }
-    }
 
     public void cleanupPendingChunks() {
         long now = System.currentTimeMillis();

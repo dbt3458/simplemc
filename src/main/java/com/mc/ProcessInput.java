@@ -10,9 +10,7 @@ public class ProcessInput {
     private float velocityY = 0.0f;
     private boolean leftClicked = false;
     private boolean rightClicked = false;
-    private static final float GRAVITY = 54.0f;
-    private static final float JUMP_POWER = 12.0f;
-    private static final float MOVE_SPEED = 30.0f;//10f最佳
+    private static final float MOVE_SPEED = 12f;//12f最佳
 
     public ProcessInput(Camera camera, World world, long window) {
         this.camera = camera;
@@ -102,7 +100,7 @@ public class ProcessInput {
                 int lz = ray.blockZ - cz * 16;
                 Chunk chunk = world.chunks.get(cx + "," + cz);
                 if (chunk != null) {
-                    chunk.setBlock(lx, ray.blockY, lz, false);
+                    chunk.setBlock(lx, ray.blockY, lz, Chunk.BLOCK_AIR);
                 }
             }
         }
@@ -139,7 +137,8 @@ public class ProcessInput {
                 if (noBlock && notOverlap && heightOk && chunk != null) {
                     int lx = px - cx * 16;
                     int lz = pz - cz * 16;
-                    chunk.setBlock(lx, py, lz, true);
+                    // 放置泥土方块（可根据需要改为 Chunk.BLOCK_GRASS）
+                    chunk.setBlock(lx, py, lz, Chunk.BLOCK_DIRT);
                 }
             }
         }

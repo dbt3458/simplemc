@@ -21,7 +21,8 @@ public class Main {
     private CrosshairUI crosshair;
     private ProcessInput processInput;
     private int renderDistance;
-    private int cleanupIntervalSeconds;
+
+
 
     public void run() {
         init();
@@ -35,8 +36,7 @@ public class Main {
             throw new IllegalStateException("GLFW 初始化失败");
         }
         LoadConfig.generateDefaultConfig();
-        renderDistance = LoadConfig.getRenderDistance();
-        cleanupIntervalSeconds = LoadConfig.getChunkCleanupInterval();
+        renderDistance= LoadConfig.getRenderDistance();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Mini MC", 0, 0);
         if (window == 0) {
             throw new RuntimeException("窗口创建失败");
@@ -56,6 +56,8 @@ public class Main {
         glfwSwapInterval(0);
         shader = new Shader();
         world = new World();
+        world.cleanupIntervalSeconds = LoadConfig.getChunkCleanupInterval();
+        System.out.println("区块卸载时间"+world.cleanupIntervalSeconds);
         camera = new Camera();
         long worldSeed = System.currentTimeMillis(); // 或使用固定的种子值，以便于调试
         Chunk.initTerrainGenerator(worldSeed);

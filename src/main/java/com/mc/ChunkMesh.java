@@ -31,8 +31,7 @@ public class ChunkMesh {
         vertices.add(x-0.5f); vertices.add(y-0.5f); vertices.add(z+0.5f); vertices.add(0.0f); vertices.add(0.0f);
     }
 
-    // 🔹 北面前面 z+【已修复】
-// 🔹 北面前面 z+【修复贴图倒置：仅翻转UV】
+// 🔹 北面前面 z
     public void addNorthFace(float x, float y, float z) {
         // 三角形1
         vertices.add(x-0.5f); vertices.add(y-0.5f); vertices.add(z+0.5f); vertices.add(0.0f); vertices.add(1.0f);
@@ -44,7 +43,7 @@ public class ChunkMesh {
         vertices.add(x-0.5f); vertices.add(y+0.5f); vertices.add(z+0.5f); vertices.add(0.0f); vertices.add(0.0f);
     }
 
-    // 🔹 南面后面 z-【修复贴图倒置：仅翻转UV】
+    // 🔹 南面后面 z
     public void addSouthFace(float x, float y, float z) {
         // 三角形1
         vertices.add(x+0.5f); vertices.add(y-0.5f); vertices.add(z-0.5f); vertices.add(0.0f); vertices.add(1.0f);
@@ -56,7 +55,7 @@ public class ChunkMesh {
         vertices.add(x+0.5f); vertices.add(y+0.5f); vertices.add(z-0.5f); vertices.add(0.0f); vertices.add(0.0f);
     }
 
-    // 🔹 东面右面 x+【修复贴图倒置：仅翻转UV】
+    // 🔹 东面右面
     public void addEastFace(float x, float y, float z) {
         // 三角形1
         vertices.add(x+0.5f); vertices.add(y-0.5f); vertices.add(z+0.5f); vertices.add(0.0f); vertices.add(1.0f);
@@ -68,7 +67,7 @@ public class ChunkMesh {
         vertices.add(x+0.5f); vertices.add(y+0.5f); vertices.add(z+0.5f); vertices.add(0.0f); vertices.add(0.0f);
     }
 
-    // 🔹 西面左面 x-【修复贴图倒置：仅翻转UV】
+    // 🔹 西面左面
     public void addWestFace(float x, float y, float z) {
         // 三角形1
         vertices.add(x-0.5f); vertices.add(y-0.5f); vertices.add(z-0.5f); vertices.add(0.0f); vertices.add(1.0f);
